@@ -1,6 +1,6 @@
 const express = require('express');
 const Campsite = require('../models/campsite');
-const { verifyUser, verifyAdmin }= require('../authenticate');
+const { verifyUser, verifyAdmin } = require('../authenticate');
 const cors = require('./cors');
 
 const campsiteRouter = express.Router();

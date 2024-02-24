@@ -1,7 +1,7 @@
 // Implements the favoriteRouter using the Express Router
 const express = require('express');
 const Favorite = require('../models/favorite');
-const { verifyUser, verifyAdmin }= require('../authenticate');
+const { verifyUser, verifyAdmin } = require('../authenticate');
 const cors = require('./cors');
 
 const favoriteRouter = express.Router();
@@ -41,10 +41,10 @@ favoriteRouter.route('/')
             })
             .catch(err => next(err));
     });
-favoriteRouter.route('/:favoriteId')
+favoriteRouter.route('/:campsiteId')
 .options(cors.corsWithOptions, (req, res) => res.sendStatus(200))
 .get(cors.cors, (req, res, next) => {
-        Favorite.findById(req.params.favoriteId)
+        Favorite.findById(req.params.campsiteId)
             .populate('comments.author')
             .then(favorite => {
                 res.statusCode = 200;
@@ -55,10 +55,10 @@ favoriteRouter.route('/:favoriteId')
     })
     .post(cors.corsWithOptions, verifyUser, verifyAdmin, (req, res) => {
         res.statusCode = 403;
-        res.end(`POST operation not supported on /favorites/${req.params.favoriteId}`);
+        res.end(`POST operation not supported on /favorites/${req.params.campsiteId}`);
     })
     .put(cors.corsWithOptions, verifyUser, verifyAdmin, (req, res, next) => {
-        Favorite.findByIdAndUpdate(req.params.favoriteId, {
+        Favorite.findByIdAndUpdate(req.params.campsiteId, {
             $set: req.body
         }, { new: true })
             .then(favorite => {
@@ -69,7 +69,7 @@ favoriteRouter.route('/:favoriteId')
             .catch(err => next(err));
     })
     .delete(cors.corsWithOptions, verifyUser, verifyAdmin, (req, res, next) => {
-        Favorite.findByIdAndDelete(req.params.favoriteId)
+        Favorite.findByIdAndDelete(req.params.campsiteId)
             .then(response => {
                 res.statusCode = 200;
                 res.setHeader('Content-Type', 'application/json');
@@ -77,7 +77,7 @@ favoriteRouter.route('/:favoriteId')
             })
             .catch(err => next(err));
     });
-favoriteRouter.route('/:favoriteId/comments')
+/* favoriteRouter.route('/:favoriteId/comments')
 .options(cors.corsWithOptions, (req, res) => res.sendStatus(200))
     .get(cors.cors, (req, res, next) => {
         Favorite.findById(req.params.favoriteId)
@@ -230,5 +230,6 @@ favoriteRouter.route('/:favoriteId/comments/:commentId')
             })
             .catch(err => next(err));
     });
+*/
 
 module.exports = favoriteRouter;
