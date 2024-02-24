@@ -22,11 +22,12 @@ connect.then(
 const indexRouter = require("./routes/index");
 const usersRouter = require("./routes/users");
 
-// TODO: Import the favoriteRouter.js
+// Imports the favoriteRouter.js
 const campsiteRouter = require("./routes/campsiteRouter");
 const promotionRouter = require("./routes/promotionRouter");
 const partnerRouter = require("./routes/partnerRouter");
 const uploadRouter = require("./routes/uploadRouter");
+const favoriteRouter = require("./routes/favoriteRouter");
 
 const app = express();
 // Secure traffic only
@@ -63,7 +64,8 @@ app.use("/campsites", campsiteRouter);
 app.use("/promotions", promotionRouter);
 app.use("/partner", partnerRouter);
 app.use("/imageUpload", uploadRouter);
-// TODO: Add the favoriteRouter as the above routers
+app.use("/imageUpload", favoriteRouter);
+// Adds the favoriteRouter as the above routers
 
 // catch 404 and forward to error handler
 app.use(function (req, res, next) {
