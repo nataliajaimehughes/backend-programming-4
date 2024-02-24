@@ -9,7 +9,7 @@ const favoriteRouter = express.Router();
 favoriteRouter.route('/')
 .options(cors.corsWithOptions, (req, res) => res.sendStatus(200))
     .get(cors.cors, (req, res, next) => {
-        Favorite.find()
+        Favorite.find(req.user._id) // TO-DO: check this
             .populate('comments.author')
             .then(favorites => {
                 res.statusCode = 200;
