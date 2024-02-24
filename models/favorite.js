@@ -1,3 +1,23 @@
+// Creates the Favorite model using Mongoose
+const mongoose = require('mongoose');
+const Schema = mongoose.Schema;
 
+require('mongoose-currency').loadType(mongoose);
+const Currency = mongoose.Types.Currency;
 
-// TODO: Create the Favorite model using Mongoose
+const favoriteSchema = new Schema({
+    user: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    },
+    campsites: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+    }]
+}, {
+    timestamps: true
+});
+
+const Favorite = mongoose.model('Favorite', favoriteSchema);
+
+module.exports = Favorite;
