@@ -10,13 +10,15 @@ favoriteRouter.route('/')
 .options(cors.corsWithOptions, (req, res) => res.sendStatus(200))
     .get(cors.cors, (req, res, next) => {
         Favorite.find(req.user._id) // TO-DO: check this
-            .populate('comments.author')
+            .populate('user') // check user, campsites
+            .populate('campsites')
             .then(favorites => {
                 res.statusCode = 200;
                 res.setHeader('Content-Type', 'application/json');
-                res.json(favorites);
+                res.json(favorites); // check
             })
             .catch(err => next(err));
+        
     })
     .post(cors.corsWithOptions, verifyUser, verifyAdmin, (req, res, next) => {
         Favorite.create(req.body)
@@ -27,6 +29,27 @@ favoriteRouter.route('/')
                 res.json(favorite);
             })
             .catch(err => next(err));
+    })
+
+        Favorite.findOne(req.user._id)
+        .then(campsite => {
+            if (campsite) {
+                req.body.author = req.user._id;
+                campsite.comments.push(req.body);
+                campsite.save()
+                    .then(campsite => {
+                        res.statusCode = 200;
+                        res.setHeader('Content-Type', 'application/json');
+                        res.json(campsite);
+                    })
+                    .catch(err => next(err));
+            } else {
+                err = new Error(`Campsite ${req.params.campsiteId} not found`);
+                err.status = 404;
+                return next(err);
+            }
+        })
+        .catch(err => next(err));
     })
     .put(cors.corsWithOptions, verifyUser, verifyAdmin, (req, res) => {
         res.statusCode = 403;
