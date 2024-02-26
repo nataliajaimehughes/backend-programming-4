@@ -64,7 +64,7 @@ app.use("/campsites", campsiteRouter);
 app.use("/promotions", promotionRouter);
 app.use("/partner", partnerRouter);
 app.use("/imageUpload", uploadRouter);
-app.use("/imageUpload", favoriteRouter);
+app.use("/favorites", favoriteRouter);
 // Adds the favoriteRouter as the above routers
 
 // catch 404 and forward to error handler
