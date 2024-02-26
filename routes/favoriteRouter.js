@@ -1,256 +1,124 @@
 // Implements the favoriteRouter using the Express Router
 const express = require('express');
 const Favorite = require('../models/favorite');
-const { verifyUser, verifyAdmin } = require('../authenticate');
+const { verifyUser } = require('../authenticate');
 const cors = require('./cors');
 
 const favoriteRouter = express.Router();
 
 favoriteRouter.route('/')
 .options(cors.corsWithOptions, (req, res) => res.sendStatus(200))
-    .get(cors.cors, verifyUser, (req, res, next) => {
-        Favorite.findOne({ user: req.user._id} )
-            .populate('user')
-            .populate('campsites')
+.get(cors.cors, verifyUser, (req, res, next) => { // next is used to handle errors
+    Favorite.findOne({ user : req.user._id} )
+    .populate('user')
+    .populate('campsites')
+    .then(favorite => {
+        res.setHeader('Content-Type', 'application/json');
+        res.status(200).json(favorite);
+    })
+    .catch(err => next(err));
+})
+.post(cors.corsWithOptions, verifyUser, (req, res, next) => {
+    const campsites = req.body.campsites;
+    Favorite.findOne({ user : req.user._id })
+    .then(favorite => {
+        if(favorite) {
+            campsites.forEach(campsite => {
+                if(!favorite.campsites.includes(req.params.campsiteId)) {
+                    favorite.campsites.push(req.params.campsiteId)
+                }
+            })
+            favorite.save()
             .then(favorite => {
                 res.setHeader('Content-Type', 'application/json');
                 res.status(200).json(favorite);
             })
             .catch(err => next(err));
-    })
-    .post(cors.corsWithOptions, verifyUser, verifyAdmin, (req, res, next) => {
-        Favorite.create(req.body)
+        } else {
+            Favorite.create({ user : req.user._id, campsites}) // identical key-value pair simplifies to campsites
             .then(favorite => {
-                console.log('Favorite Created ', favorite);
-                res.statusCode = 200;
                 res.setHeader('Content-Type', 'application/json');
-                res.json(favorite);
+                res.status(200).json(favorite);
             })
             .catch(err => next(err));
+        }
+    }) 
+})
+.put(cors.corsWithOptions, verifyUser, (req, res, next) => {
+    res.statusCode = 403;
+    res.end('PUT operation not supported on /favorites');
+})
+.delete(cors.corsWithOptions, verifyUser, (req, res, next) => {
+    Favorite.findOneAndDelete({ user : req.user._id })
+    .then(response => {
+        res.setHeader('Content-Type', 'application/json');
+        res.status(200).json(response);
     })
-
-        Favorite.findOne(req.user._id)
-        .then(campsite => {
-            if (campsite) {
-                req.body.author = req.user._id;
-                campsite.comments.push(req.body);
-                campsite.save()
-                    .then(campsite => {
-                        res.statusCode = 200;
-                        res.setHeader('Content-Type', 'application/json');
-                        res.json(campsite);
-                    })
-                    .catch(err => next(err));
-            } else {
-                err = new Error(`Campsite ${req.params.campsiteId} not found`);
-                err.status = 404;
-                return next(err);
-            }
-        })
-        .catch(err => next(err));
-    })
-    .put(cors.corsWithOptions, verifyUser, verifyAdmin, (req, res) => {
-        res.statusCode = 403;
-        res.end('PUT operation not supported on /favorites');
-    })
-    .delete(cors.corsWithOptions, verifyUser, verifyAdmin, (req, res, next) => {
-        Favorite.deleteMany()
-            .then(response => {
-                res.statusCode = 200;
-                res.setHeader('Content-Type', 'application/json');
-                res.json(response);
-            })
-            .catch(err => next(err));
-    });
+    .catch(err => next(err));
+})
 favoriteRouter.route('/:campsiteId')
 .options(cors.corsWithOptions, (req, res) => res.sendStatus(200))
 .get(cors.cors, verifyUser, (req, res, next) => {
-        Favorite.findById(req.params.campsiteId)
-            .populate('comments.author')
+    res.statusCode = 403;
+    res.end(`GET operation not supported on /favorites/${req.params.campsiteId}`);
+})
+.post(cors.corsWithOptions, verifyUser, (req, res) => {
+    const campsites = req.body.campsites;
+    Favorite.findOne({ user : req.user._id })
+    .then(favorite => {
+        if(favorite) {
+            campsites.forEach(campsite => {
+                if(!favorite.campsites.includes(req.params.campsiteId)) {
+                    favorite.campsites.push(req.params.campsiteId)
+                    favorite.save()
+                    .then(favorite => {
+                        res.setHeader('Content-Type', 'application/json');
+                        res.status(200).json(favorite);
+                    })
+                    .catch(err => next(err));
+                } else {
+                    res.setHeader('Content-Type', 'application/json');
+                    res.status(409).send('This campsite is already in the favorites list.');
+                }
+                });
+        } else {
+            Favorite.create({ user : req.user._id, campsites: [req.params.campsiteId]})
             .then(favorite => {
-                res.statusCode = 200;
                 res.setHeader('Content-Type', 'application/json');
-                res.json(favorite);
+                res.status(200).json(favorite);
             })
             .catch(err => next(err));
+        }
+    });
 })
-.post(cors.corsWithOptions, verifyUser, verifyAdmin, (req, res) => {
+.put(cors.corsWithOptions, verifyUser, (req, res, next) => {
     res.statusCode = 403;
-    res.end(`POST operation not supported on /favorites/${req.params.campsiteId}`);
+    res.end(`PUT operation not supported on /favorites/${req.params.campsiteId}`);
 })
-.put(cors.corsWithOptions, verifyUser, verifyAdmin, (req, res, next) => {
-    Favorite.findByIdAndUpdate(req.params.campsiteId, {
-        $set: req.body
-    }, { new: true })
-        .then(favorite => {
-            res.statusCode = 200;
-            res.setHeader('Content-Type', 'application/json');
-            res.json(favorite);
-        })
-        .catch(err => next(err));
-})
-.delete(cors.corsWithOptions, verifyUser, verifyAdmin, (req, res, next) => {
-    Favorite.findByIdAndDelete(req.params.campsiteId)
-        .then(response => {
-            res.statusCode = 200;
-            res.setHeader('Content-Type', 'application/json');
-            res.json(response);
-        })
-        .catch(err => next(err));
-});
-/* favoriteRouter.route('/:favoriteId/comments')
-.options(cors.corsWithOptions, (req, res) => res.sendStatus(200))
-    .get(cors.cors, (req, res, next) => {
-        Favorite.findById(req.params.favoriteId)
-            .populate('comments.author')
-            .then(favorite => {
-        //openssl version                
+.delete(cors.corsWithOptions, verifyUser, (req, res, next) => {
+    Favorite.findOne({ user : req.user._id })
+    .then(favorite => {
         if (favorite) {
-            res.statusCode = 200;
-            res.setHeader('Content-Type', 'application/json');
-            res.json(favorite.comments);
+            const index = favorite.campsites.indexOf(req.params.campsiteId);
+            if(index !== -1) {
+                favorite.campsites.splice(index, 1);
+                favorite.save()
+                .then(favorite => {
+                    res.setHeader('Content-Type', 'application/json');
+                    res.status(200).json(favorite);
+                })
+                .catch(err => next(err));
+            } else {
+                res.setHeader('Content-Type', 'text/plain');
+                res.status(404).send('Campsite was not found in your favorites list.');
+            }
         } else {
-            err = new Error(`Favorite ${req.params.favoriteId} not found`);
-            err.status = 404;
-            return next(err);
+            res.setHeader('Content-Type', 'text/plain');
+            res.status(404).send('You do not have any favorites to delete.');
         }
     })
     .catch(err => next(err));
-        
-    })
-    .post(cors.corsWithOptions, verifyUser, verifyAdmin, (req, res, next) => {
-        Favorite.findById(req.params.favoriteId)
-            .then(favorite => {
-                if (favorite) {
-                    req.body.author = req.user._id;
-                    favorite.comments.push(req.body);
-                    favorite.save()
-                        .then(favorite => {
-                            res.statusCode = 200;
-                            res.setHeader('Content-Type', 'application/json');
-                            res.json(favorite);
-                        })
-                        .catch(err => next(err));
-                } else {
-                    err = new Error(`Favorite ${req.params.favoriteId} not found`);
-                    err.status = 404;
-                    return next(err);
-                }
-            })
-            .catch(err => next(err));
-    })
-    .put(cors.corsWithOptions, verifyUser, verifyAdmin, (req, res) => {
-        res.statusCode = 403;
-        res.end(`PUT operation not supported on /favorites/${req.params.favoriteId}/comments`);
-    })
-    .delete(cors.corsWithOptions, verifyUser, verifyAdmin, (req, res, next) => {
-        Favorite.findById(req.params.favoriteId)
-            .then(favorite => {
-                if (favorite) {
-                    for (let i = (favorite.comments.length - 1); i >= 0; i--) {
-                        favorite.comments.id(favorite.comments[i]._id).remove();
-                    }
-                    favorite.save()
-                        .then(favorite => {
-                            res.statusCode = 200;
-                            res.setHeader('Content-Type', 'application/json');
-                            res.json(favorite);
-                        })
-                        .catch(err => next(err));
-                } else {
-                    err = new Error(`Favorite ${req.params.favoriteId} not found`);
-                    err.status = 404;
-                    return next(err);
-                }
-            })
-            .catch(err => next(err));
-    });
-favoriteRouter.route('/:favoriteId/comments/:commentId')
-.options(cors.corsWithOptions, (req, res) => res.sendStatus(200))
-    .get(cors.cors, (req, res, next) => {
-        Favorite.findById(req.params.favoriteId)
-            .populate('comments.author')
-            .then(favorite => {
-                if (favorite && favorite.comments.id(req.params.commentId)) {
-                    res.statusCode = 200;
-                    res.setHeader('Content-Type', 'application/json');
-                    res.json(favorite.comments.id(req.params.commentId));
-                } else if (!favorite) {
-                    err = new Error(`Favorite ${req.params.favoriteId} not found`);
-                    err.status = 404;
-                    return next(err);
-                } else {
-                    err = new Error(`Comment ${req.params.commentId} not found`);
-                    err.status = 404;
-                    return next(err);
-                }
-            })
-            .catch(err => next(err));
-    })
-    .post(cors.corsWithOptions, verifyUser, verifyAdmin, (req, res, next) => {
-        res.statusCode = 403;
-        res.end(`POST operation not supported on /favorites/${req.params.favoriteId}/comments/${req.params.commentId}`);
-    })
-    .put(cors.corsWithOptions, verifyUser, (req, res, next) => {
-        Favorite.findById(req.params.favoriteId)
-            .then(favorite => {
-                if (req.user._id.equals(favorite.comments.id(req.params.commentId).author)) {
-                    if (favorite && favorite.comments.id(req.params.commentId)) {
-                        if (req.body.rating) {
-                            favorite.comments.id(req.params.commentId).rating = req.body.rating;
-                        }
-                        if (req.body.text) {
-                            favorite.comments.id(req.params.commentId).text = req.body.text;
-                        }
-                        favorite.save()
-                            .then(favorite => {
-                                res.statusCode = 200;
-                                res.setHeader('Content-Type', 'application/json');
-                                res.json(favorite);
-                            })
-                            .catch(err => next(err));
-                    } else {
-                        const err = new Error('Comment not found');
-                        err.status = 404;
-                        return next(err);
-                    }
-                } else {
-                    const err = new Error(`Favorite ${req.params.favoriteId} or Comment ${req.params.commentId} not found`);
-                    err.status = 403;
-                    res.setHeader('Content-Type', 'text/plain');
-                    return next(err);
-                }
-            })
-            .catch(err => next(err));
-    })
-
-    .delete(cors.corsWithOptions, verifyUser, (req, res, next) => {
-        Favorite.findById(req.params.favoriteId)
-            .then(favorite => {
-                if (favorite && favorite.comments.id(req.params.commentId)) {
-                    if (req.user._id.equals(favorite.comments.id(req.params.commentId).author)) {
-                        favorite.comments.id(req.params.commentId).remove();
-                        favorite.save()
-                            .then(favorite => {
-                                res.statusCode = 200;
-                                res.setHeader('Content-Type', 'application/json');
-                                res.json(favorite);
-                            })
-                            .catch(err => next(err));
-                    } else {
-                        const err = new Error('You are not the author of the comment');
-                        err.status = 403;
-                        res.setHeader('Content-Type', 'text/plain');
-                        return next(err);
-                    }
-                } else {
-                    const err = new Error(`Favorite ${req.params.favoriteId} or Comment ${req.params.commentId} not found`);
-                    err.status = 404;
-                    return next(err);
-                }
-            })
-            .catch(err => next(err));
-    });
-*/
+});
 
 module.exports = favoriteRouter;
+
