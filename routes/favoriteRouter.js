@@ -8,17 +8,15 @@ const favoriteRouter = express.Router();
 
 favoriteRouter.route('/')
 .options(cors.corsWithOptions, (req, res) => res.sendStatus(200))
-    .get(cors.cors, (req, res, next) => {
-        Favorite.find(req.user._id) // TO-DO: check this
-            .populate('user') // check user, campsites
+    .get(cors.cors, verifyUser, (req, res, next) => {
+        Favorite.findOne({ user: req.user._id} )
+            .populate('user')
             .populate('campsites')
-            .then(favorites => {
-                res.statusCode = 200;
+            .then(favorite => {
                 res.setHeader('Content-Type', 'application/json');
-                res.json(favorites); // check
+                res.status(200).json(favorite);
             })
             .catch(err => next(err));
-        
     })
     .post(cors.corsWithOptions, verifyUser, verifyAdmin, (req, res, next) => {
         Favorite.create(req.body)
@@ -66,7 +64,7 @@ favoriteRouter.route('/')
     });
 favoriteRouter.route('/:campsiteId')
 .options(cors.corsWithOptions, (req, res) => res.sendStatus(200))
-.get(cors.cors, (req, res, next) => {
+.get(cors.cors, verifyUser, (req, res, next) => {
         Favorite.findById(req.params.campsiteId)
             .populate('comments.author')
             .then(favorite => {
@@ -75,31 +73,31 @@ favoriteRouter.route('/:campsiteId')
                 res.json(favorite);
             })
             .catch(err => next(err));
-    })
-    .post(cors.corsWithOptions, verifyUser, verifyAdmin, (req, res) => {
-        res.statusCode = 403;
-        res.end(`POST operation not supported on /favorites/${req.params.campsiteId}`);
-    })
-    .put(cors.corsWithOptions, verifyUser, verifyAdmin, (req, res, next) => {
-        Favorite.findByIdAndUpdate(req.params.campsiteId, {
-            $set: req.body
-        }, { new: true })
-            .then(favorite => {
-                res.statusCode = 200;
-                res.setHeader('Content-Type', 'application/json');
-                res.json(favorite);
-            })
-            .catch(err => next(err));
-    })
-    .delete(cors.corsWithOptions, verifyUser, verifyAdmin, (req, res, next) => {
-        Favorite.findByIdAndDelete(req.params.campsiteId)
-            .then(response => {
-                res.statusCode = 200;
-                res.setHeader('Content-Type', 'application/json');
-                res.json(response);
-            })
-            .catch(err => next(err));
-    });
+})
+.post(cors.corsWithOptions, verifyUser, verifyAdmin, (req, res) => {
+    res.statusCode = 403;
+    res.end(`POST operation not supported on /favorites/${req.params.campsiteId}`);
+})
+.put(cors.corsWithOptions, verifyUser, verifyAdmin, (req, res, next) => {
+    Favorite.findByIdAndUpdate(req.params.campsiteId, {
+        $set: req.body
+    }, { new: true })
+        .then(favorite => {
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.json(favorite);
+        })
+        .catch(err => next(err));
+})
+.delete(cors.corsWithOptions, verifyUser, verifyAdmin, (req, res, next) => {
+    Favorite.findByIdAndDelete(req.params.campsiteId)
+        .then(response => {
+            res.statusCode = 200;
+            res.setHeader('Content-Type', 'application/json');
+            res.json(response);
+        })
+        .catch(err => next(err));
+});
 /* favoriteRouter.route('/:favoriteId/comments')
 .options(cors.corsWithOptions, (req, res) => res.sendStatus(200))
     .get(cors.cors, (req, res, next) => {
