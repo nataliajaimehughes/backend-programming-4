@@ -12,7 +12,7 @@ const favoriteSchema = new Schema({
     },
     campsites: [{
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User'
+        ref: 'Campsite'
     }]
 }, {
     timestamps: true
